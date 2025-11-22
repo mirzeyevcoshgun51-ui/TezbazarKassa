@@ -1,8 +1,40 @@
 import os
 import sys
 import logging
+from threading import Thread
+from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
+
+# Flask app yarat
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "🤖 Tezbazar Kassa Bot aktivdir! Status: OK"
+
+@app.route('/health')
+def health_check():
+    return {"status": "healthy", "service": "telegram-bot", "cashback": "3.5% aktiv"}
+
+@app.route('/status')
+def status():
+    return {
+        "status": "running", 
+        "service": "Tezbazar Kassa Bot",
+        "version": "1.0",
+        "cashback": "3.5% aktiv"
+    }
+
+# Flask serveri işə sal
+def run_flask():
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port, debug=False)
+
+# Flask serveri ayrı thread-də işə sal
+flask_thread = Thread(target=run_flask)
+flask_thread.daemon = True
+flask_thread.start()
 
 # Logging konfiqurasiyası
 logging.basicConfig(
@@ -19,7 +51,9 @@ ADMIN_ID = int(os.environ.get('ADMIN_ID', 0))
 logger.info("🚀 Bot başladılır...")
 logger.info(f"📋 ADMIN_ID: {ADMIN_ID}")
 logger.info(f"🔐 BOT_TOKEN mövcuddur: {bool(BOT_TOKEN)}")
+logger.info("🌐 Flask server işə salındı...")
 
+# ... (SENİN BÜTÜN DİGƏR KODLARIN EYNİ QALIR) ...
 # Müvəqqəti məlumatlar üçün dictionary
 user_data = {}
 admin_messages = {}
@@ -742,6 +776,7 @@ def main():
         
         print("🤖 Bot işə salındı!")
         print(f"👑 Admin ID: {ADMIN_ID}")
+        print("🌐 Flask server aktiv")
         
         # Botu işə sal
         application.run_polling()
