@@ -4,25 +4,6 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
-# Render.com üçün Flask server əlavə et
-from flask import Flask
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "🤖 Telegram Bot aktivdir! Status: OK"
-
-# Flask serveri ayrı thread-də işə sal
-def run_flask():
-    app.run(host='0.0.0.0', port=5000, debug=False)
-
-# Render mühitində işləyirsə, Flask serveri işə sal
-if os.environ.get('RENDER'):
-    import threading
-    flask_thread = threading.Thread(target=run_flask)
-    flask_thread.daemon = True
-    flask_thread.start()
-
 # Logging konfiqurasiyası
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -38,7 +19,6 @@ ADMIN_ID = int(os.environ.get('ADMIN_ID', 0))
 logger.info("🚀 Bot başladılır...")
 logger.info(f"📋 ADMIN_ID: {ADMIN_ID}")
 logger.info(f"🔐 BOT_TOKEN mövcuddur: {bool(BOT_TOKEN)}")
-logger.info(f"🌐 Render mühiti: {os.environ.get('RENDER', 'Yoxdur')}")
 
 # Müvəqqəti məlumatlar üçün dictionary
 user_data = {}
@@ -762,7 +742,6 @@ def main():
         
         print("🤖 Bot işə salındı!")
         print(f"👑 Admin ID: {ADMIN_ID}")
-        print("🌐 Render mühiti: Aktiv")
         
         # Botu işə sal
         application.run_polling()
