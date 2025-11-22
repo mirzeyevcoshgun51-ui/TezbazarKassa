@@ -4,29 +4,41 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
-# Railway üçün xüsusi konfiqurasiya
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    print("⚠️ python-dotenv tapılmadı, environment variables birbaşa istifadə olunur")
+# Render.com üçün Flask server əlavə et
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "🤖 Telegram Bot aktivdir! Status: OK"
+
+# Flask serveri ayrı thread-də işə sal
+def run_flask():
+    app.run(host='0.0.0.0', port=5000, debug=False)
+
+# Render mühitində işləyirsə, Flask serveri işə sal
+if os.environ.get('RENDER'):
+    import threading
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
 
 # Logging konfiqurasiyası
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO,
-    stream=sys.stdout  # Railway logs üçün
+    stream=sys.stdout
 )
 logger = logging.getLogger(__name__)
 
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 ADMIN_ID = int(os.environ.get('ADMIN_ID', 0))
 
-# Log environment variables (tokenı göstərmədən)
+# Log environment variables
 logger.info("🚀 Bot başladılır...")
 logger.info(f"📋 ADMIN_ID: {ADMIN_ID}")
 logger.info(f"🔐 BOT_TOKEN mövcuddur: {bool(BOT_TOKEN)}")
-
+logger.info(f"🌐 Render mühiti: {os.environ.get('RENDER', 'Yoxdur')}")
 
 # Müvəqqəti məlumatlar üçün dictionary
 user_data = {}
@@ -704,6 +716,20 @@ async def send_contact_to_admin(update: Update, context: ContextTypes.DEFAULT_TY
     except Exception as e:
         logger.error(f"Adminlərə əlaqə mesajı göndərilmədi: {e}")
 
+# Xəta handler funksiyası
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Xətaları idarə et"""
+    logger.error(f"Bot xətası: {context.error}")
+    
+    try:
+        # İstifadəçiyə xəta mesajı göndər
+        if update and update.effective_user:
+            await update.effective_user.send_message(
+                "❌ Əməliyyat zamanı xəta baş verdi. Zəhmət olmasa bir az sonra yenidən cəhd edin."
+            )
+    except Exception as e:
+        logger.error(f"Xəta mesajı göndərilmədi: {e}")
+
 def main():
     logger.info("🤖 Bot main funksiyası başladı...")
     
@@ -731,14 +757,12 @@ def main():
         # Xəta handler
         application.add_error_handler(error_handler)
         
-        # Railway üçün PORT
-        port = int(os.environ.get('PORT', 8443))
-        
         logger.info("✅ Bot uğurla quruldu!")
-        logger.info(f"🚀 Railway serverində işə salınır... PORT: {port}")
+        logger.info("🚀 Render.com serverində işə salınır...")
         
         print("🤖 Bot işə salındı!")
         print(f"👑 Admin ID: {ADMIN_ID}")
+        print("🌐 Render mühiti: Aktiv")
         
         # Botu işə sal
         application.run_polling()
